@@ -87,7 +87,7 @@ if ((rmv)); then
 	read -p $'\nPress enter to confirm deletion\n'
 fi
 
-mkdir tempFiles Converted
+mkdir tempFiles Converted -m 777
 c=1
 
 for f in *.pdf
@@ -95,7 +95,7 @@ do
 	echo "Now converting $f ( $c of $cnt )"
 	read -t 1 -p $'\n'
 	echo "Retrieving individual pages from $f..."
-	convert -density 200 "$f" -quality 100 tempFiles/%02d.jpg
+	convert -density 200 "$f" -quality 75 tempFiles/%03d.jpg
 	cd tempFiles
 	mkdir conversion
 	j=1
@@ -105,9 +105,10 @@ do
    	while read fname ; do
      		echo "Splitting:  $fname"
      		convert -crop 50%x100% +repage $fname "$fname"%d.jpg
-     		mv "$fname"0.jpg conversion/0"$j".jpg
+		new_name="${fname%.jpg}"
+     		mv "$fname"0.jpg conversion/"$new_name"a.jpg
         	    ((j=j+1))
-     		mv "$fname"1.jpg conversion/0"$j".jpg
+     		mv "$fname"1.jpg conversion/"$new_name"b.jpg
         	    ((j=j+1))
 	done
 
@@ -121,16 +122,18 @@ do
 			fi
 		done
 	fi
-	
-	cd ../Converted
-	k=$(basename $f .pdf)
+
+	cd conversion
+	k=$(basename "$f" .pdf)
 
 	if [[ $ftype = "cbz" ]]; then
 		read -t 2 -p $'\nConverting pages into CBZ file...\n'
-		zip -0 "$k".cbz ../tempFiles/conversion/*.jpg
+		zip -0 "$k".cbz *.jpg
+		mv "$k".cbz ../../Converted
 	else
 		read -t 2 -p $'\nConverting pages into cbr file...\n'
 		rar a -ep "$k".cbr ../tempFiles/conversion/
+		mv "$k".cbr ../../Converted
 	fi
 
 	cd "$dir" && rm -rf tempFiles/*	
